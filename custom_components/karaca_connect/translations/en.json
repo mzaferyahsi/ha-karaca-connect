@@ -1,0 +1,125 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Karaca Connect",
+        "description": "Sign in with your Karaca Connect app account.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Karaca Connect",
+        "description": "Enter the password for {email}.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password.",
+      "cannot_connect": "Could not reach the Karaca Connect service.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This account is already configured.",
+      "reauth_successful": "Re-authentication successful."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "mode": {
+        "name": "Mode"
+      },
+      "state": {
+        "name": "State"
+      },
+      "freshness": {
+        "name": "Tea freshness"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "remaining_time": {
+        "name": "Remaining time"
+      },
+      "cook_time": {
+        "name": "Cook time"
+      },
+      "mode_state": {
+        "name": "Mode state"
+      },
+      "status": {
+        "name": "Status"
+      },
+      "countdown": {
+        "name": "Countdown"
+      },
+      "kettle_temperature": {
+        "name": "Kettle temperature"
+      },
+      "kettle_temperature_set": {
+        "name": "Kettle target temperature"
+      }
+    },
+    "switch": {
+      "mode_teabrewing": {
+        "name": "Tea brewing"
+      },
+      "mode_boilingwater": {
+        "name": "Boiling water"
+      },
+      "mode_filtercoffee": {
+        "name": "Filter coffee"
+      },
+      "mode_babyfood": {
+        "name": "Baby food"
+      },
+      "mode_standby": {
+        "name": "Standby"
+      },
+      "mode_herbaltea": {
+        "name": "Herbal tea"
+      },
+      "mode_kettlemode": {
+        "name": "Kettle"
+      }
+    },
+    "button": {
+      "stop": {
+        "name": "Stop"
+      },
+      "pause": {
+        "name": "Pause"
+      },
+      "continue": {
+        "name": "Continue"
+      }
+    }
+  },
+  "services": {
+    "start_cooking": {
+      "name": "Start cooking",
+      "description": "Start an AeroFritas air fryer program.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The air fryer."
+        },
+        "mode_id": {
+          "name": "Mode ID",
+          "description": "Mode id from the Mode sensor's available_modes attribute."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Temperature in °C."
+        },
+        "time": {
+          "name": "Time",
+          "description": "Cook time, in the same format as the mode's default time (see available_modes)."
+        }
+      }
+    }
+  }
+}

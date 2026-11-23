@@ -1,0 +1,26 @@
+start_cooking:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: karaca_connect
+    mode_id:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 1000
+          mode: box
+    temperature:
+      required: true
+      selector:
+        number:
+          min: 40
+          max: 230
+          unit_of_measurement: "°C"
+    time:
+      required: true
+      example: "15:00"
+      selector:
+        text:
