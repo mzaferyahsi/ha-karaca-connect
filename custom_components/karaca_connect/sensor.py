@@ -63,6 +63,7 @@ ROBOTEA_SENSORS = (
         translation_key="countdown",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_display_precision=0,
         value_fn=lambda d: _int(_countdown(d).get("remainingSeconds")),
         attrs_fn=lambda d: {
             "label": _countdown(d).get("displayText"),
@@ -150,6 +151,7 @@ AIRFRYER_SENSORS = (
         translation_key="remaining_time",
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_display_precision=0,
         value_fn=lambda d: _int(d.state.get("remainingTimeInSeconds")),
     ),
     KaracaSensorDescription(
