@@ -17,7 +17,7 @@ ROBOTEA_MODE_KEYS = (
     "babyFood",
     "herbalTea",
     "kettleMode",
-    "standBy",
+    "standBy",  # the app's main power button: active = machine on
 )
 
 SERVICE_START_COOKING = "start_cooking"

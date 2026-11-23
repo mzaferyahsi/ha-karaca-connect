@@ -59,12 +59,12 @@ async def test_entities(hass: HomeAssistant, mock_api) -> None:
     add_cloud(mock_api)
     await _setup(hass)
 
-    assert hass.states.get("sensor.kitchen_robotea_mode").state == "teabrewing"
-    assert hass.states.get("sensor.kitchen_robotea_mode_state").state == "brewedfresh"
+    assert hass.states.get("sensor.kitchen_robotea_mode").state == "Tea brewing"
+    assert hass.states.get("sensor.kitchen_robotea_mode_state").state == "Fresh"
     assert hass.states.get("sensor.kitchen_robotea_status").state == "Çayınız Taze"
     assert hass.states.get("sensor.kitchen_robotea_countdown").state == "2088"
     assert hass.states.get("sensor.kitchen_robotea_tea_freshness").state == "3"
-    assert hass.states.get("switch.kitchen_robotea_standby").state == "on"
+    assert hass.states.get("switch.kitchen_robotea_power").state == "on"
     assert hass.states.get("switch.kitchen_robotea_tea_brewing").state == "on"
     assert hass.states.get("switch.kitchen_robotea_filter_coffee").state == "off"
     assert hass.states.get("switch.kitchen_robotea_baby_food").state == "off"
@@ -75,7 +75,7 @@ async def test_entities(hass: HomeAssistant, mock_api) -> None:
     assert len(hass.states.async_entity_ids("switch")) == 5
     assert hass.states.get("binary_sensor.kitchen_robotea_connectivity").state == "on"
 
-    assert hass.states.get("sensor.air_fryer_state").state == "COOKING"
+    assert hass.states.get("sensor.air_fryer_state").state == "Cooking"
     assert hass.states.get("sensor.air_fryer_temperature").state == "180"
     assert hass.states.get("sensor.air_fryer_remaining_time").state == "420"
     assert hass.states.get("binary_sensor.air_fryer_connectivity").state == "off"
@@ -128,7 +128,7 @@ async def test_401_triggers_refresh(hass: HomeAssistant, mock_api) -> None:
     )
     add_cloud(mock_api)
     entry = await _setup(hass)
-    assert hass.states.get("sensor.kitchen_robotea_mode").state == "teabrewing"
+    assert hass.states.get("sensor.kitchen_robotea_mode").state == "Tea brewing"
     refresh = _calls(mock_api, "POST", "api/auth/refresh-token")[0]
     assert refresh.kwargs["json"] == {"refreshToken": "rt-1"}
     assert entry.data[CONF_REFRESH_TOKEN] == "rt-2"
@@ -154,3 +154,23 @@ async def test_restart_uses_saved_refresh_token(hass: HomeAssistant, mock_api) -
     devices_call = _calls(mock_api, "GET", "api/v1/devices/me")[0]
     assert devices_call.kwargs["headers"]["Authorization"] == "Bearer jwt-9"
     assert entry.data[CONF_REFRESH_TOKEN] == "rt-9"
+
+
+async def test_stale_tea_has_zero_countdown(hass: HomeAssistant, mock_api) -> None:
+    """Observed live: once tea goes stale the server drops the countdown object."""
+    import copy
+
+    from .conftest import ROBOTEA
+
+    stale = copy.deepcopy(ROBOTEA)
+    detail = stale["data"]["detail"]
+    detail.update(modeState=5, modeStateLabel="brewedstale")
+    detail["stepView"] = {"id": "teabrewing_brewedstale", "label": "Çay Bayatladı", "countdown": None}
+    add_cloud(mock_api, robotea=stale)
+    await _setup(hass)
+
+    assert hass.states.get("sensor.kitchen_robotea_countdown").state == "0"
+    state = hass.states.get("sensor.kitchen_robotea_mode_state")
+    assert state.state == "Stale"
+    assert state.attributes["raw"] == "brewedstale"
+    assert hass.states.get("sensor.kitchen_robotea_status").state == "Çay Bayatladı"

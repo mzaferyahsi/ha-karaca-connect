@@ -34,10 +34,11 @@ Polling interval: 30 s.
 | Device | Entity | Source field |
 |---|---|---|
 | All | `binary_sensor` Connected | `meta.connected` |
-| Robotea | `sensor` Mode, Mode state, Status, Countdown, Tea freshness | `detail.modeName`, `modeStateLabel`, `stepView.label`, `stepView.countdown.remainingSeconds`, `freshness.level` |
+| Robotea | `sensor` Mode, Mode state, Status, Countdown, Tea freshness | `detail.modeName`, `modeStateLabel`, `stepView.label`, `stepView.countdown.remainingSeconds` (0 when no countdown), `freshness.level` |
 | Robotea | `sensor` State (disabled by default) | `detail.state` (raw integer) |
 | Robotea | `sensor` Kettle temperature / target (only if reported) | `kettleTemperatureRead` / `kettleTemperatureSet` |
-| Robotea | `switch` Tea brewing / Boiling water / Filter coffee / Baby food / Herbal tea / Kettle / Standby | `detail.modes.<key>.active`. A switch is only created for modes the device reports (not null). |
+| Robotea | `switch` Power | `detail.modes.standBy.active`. This is the app's main power button: on means the machine is on; turning it off powers the Robotea down. |
+| Robotea | `switch` Tea brewing / Boiling water / Filter coffee / Baby food / Herbal tea / Kettle | `detail.modes.<key>.active`. A switch is only created for modes the device reports (not null). |
 | AeroFritas | `sensor` State, Mode, Temperature, Remaining time, Cook time | `detail.state`, `modeName`, `temperature`, `remainingTimeInSeconds`, `time` |
 | AeroFritas | `button` Stop / Pause / Continue | `POST /api/v1/airfryer/cmd/{cmd}` |
 | AeroFritas | service `karaca_connect.start_cooking` | `POST /api/v1/airfryer/cmd/start` |
@@ -68,8 +69,10 @@ python3 tools/probe.py you@example.com --raw
 ## Protocol notes
 
 Recovered by static analysis of `com.btpro.clients.karacaconnect` 2.0.3 (versionCode 65,
-APK SHA-256 `76b3c09d…3e13`, signer cert SHA-256 `3a2b32c4…8ddc`). Nothing below was
-observed on the wire; it is what the app's Retrofit interface and models declare.
+APK SHA-256 `76b3c09d…3e13`) and re-checked against 2.0.6 (versionCode 70, APK SHA-256
+`747070c9…0d71`). Both are signed with certificate SHA-256 `3a2b32c4…8ddc` and declare the
+same 43 endpoints. Unless marked as observed live, what follows is what the app's Retrofit
+interface and models declare.
 
 **Base URL:** `https://karacaconnectapi.krc.com.tr`
 
@@ -153,10 +156,13 @@ so state must be polled.
 
 ## Unknowns
 
-- What the Robotea `state` integer and the air fryer `state` strings mean. The integration shows them raw.
-- What `standBy` does. It reported `active: true` while tea brewing was also active, so it probably
-  means "powered / standby enabled" rather than being an exclusive mode. The app toggles it on its own
-  (`PUT …/modes/1`). Test with care.
+- The full list of `modeStateLabel` values. Only `brewedfresh` ("Fresh") and `brewedstale` ("Stale")
+  have been observed. Neither the 2.0.3 nor the 2.0.6 app reads this field, so the list must come from
+  live observation. Unknown values are shown split into words (e.g. `waterboiled` → "Water boiled"),
+  with the raw code kept in the `raw` attribute.
+- What the Robotea `state` integer means. The only numeric check in the app is `modeState == 2` while
+  boiling water, which shows "Su Kaynadı" (water boiled).
+- What `freshness.level` means. It went 3 → 1 while fresh, then 5 once stale.
 - Writes (mode switches, air fryer commands) have not been exercised against the live API yet.
 - The exact `time` string format for `start_cooking`. Copy it from `available_modes`.
 - The server-side rate limits.

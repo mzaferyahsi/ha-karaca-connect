@@ -18,6 +18,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import KaracaConfigEntry, KaracaDevice
 from .entity import KaracaEntity
+from .labels import humanize, mode_name, mode_state_name
 
 
 def _int(value: Any) -> int | None:
@@ -37,19 +38,23 @@ ROBOTEA_SENSORS = (
     KaracaSensorDescription(
         key="mode",
         translation_key="mode",
-        value_fn=lambda d: d.state.get("modeName"),
+        value_fn=lambda d: mode_name(d.state.get("modeName")),
         attrs_fn=lambda d: {
+            "raw": d.state.get("modeName"),
             "mode_id": d.state.get("mode"),
             "mode_state": d.state.get("modeState"),
             "updated": d.state.get("updatedDate"),
         },
     ),
     KaracaSensorDescription(
-        # e.g. "brewedfresh" while freshly brewed tea is being kept warm.
+        # Raw "brewedfresh" -> "Fresh", "brewedstale" -> "Stale".
         key="mode_state",
         translation_key="mode_state",
-        value_fn=lambda d: d.state.get("modeStateLabel"),
-        attrs_fn=lambda d: {"mode_state_id": d.state.get("modeState")},
+        value_fn=lambda d: mode_state_name(d.state.get("modeStateLabel")),
+        attrs_fn=lambda d: {
+            "raw": d.state.get("modeStateLabel"),
+            "mode_state_id": d.state.get("modeState"),
+        },
     ),
     KaracaSensorDescription(
         # Localized text the app shows, e.g. "Çayınız Taze" ("Your tea is fresh").
@@ -64,7 +69,8 @@ ROBOTEA_SENSORS = (
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         suggested_display_precision=0,
-        value_fn=lambda d: _int(_countdown(d).get("remainingSeconds")),
+        # No countdown object means nothing is counting down: report 0, not unknown.
+        value_fn=lambda d: max(_int(_countdown(d).get("remainingSeconds")) or 0, 0),
         attrs_fn=lambda d: {
             "label": _countdown(d).get("displayText"),
             "start": _countdown(d).get("startTime"),
@@ -119,7 +125,8 @@ AIRFRYER_SENSORS = (
     KaracaSensorDescription(
         key="state",
         translation_key="state",
-        value_fn=lambda d: d.state.get("state"),
+        value_fn=lambda d: humanize(d.state.get("state")),
+        attrs_fn=lambda d: {"raw": d.state.get("state")},
     ),
     KaracaSensorDescription(
         key="mode",
