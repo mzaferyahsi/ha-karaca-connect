@@ -61,8 +61,15 @@ data:
 
 Every Karaca device has an **Activity** event entity. Whenever a device's connection, power,
 mode or status changes, it fires one event (typed `connection`, `power`, `mode` or `status`, the
-most important change first) with a ready-made `message`, for example
-`Remziye: Fresh (Çayınız Taze)`. The same data is fired on the event bus as
+most important change first) with a ready-made `message`. A tea brew produces:
+
+| When | Message |
+|---|---|
+| Water starts boiling | `Remziye: mode: Tea brewing, water is boiling for tea` |
+| Brewing starts | `Remziye: tea brewing started` |
+| Tea is ready | `Remziye: tea is brewed` (`freshness: started`) |
+| 10 minutes of freshness left | `Remziye: tea stays fresh for 10 more minutes` (type `freshness`, `freshness: ending`) |
+| Freshness is gone | `Remziye: tea is no longer fresh` (`freshness: ended`) | The same data is fired on the event bus as
 `karaca_connect_event`, so one automation covers every Karaca device:
 
 ```yaml
@@ -79,7 +86,8 @@ mode: queued
 ```
 
 Event data: `type`, `message`, `device_name`, `device_id`, `kind`, `changes`, `previous`,
-`current`, `status_text`. The state Home Assistant starts up in is a baseline and is not reported.
+`current`, `status_text`, `freshness` (`started` / `ending` / `ended` or null), and
+`remaining_seconds` on the 10-minute warning. The state Home Assistant starts up in is a baseline and is not reported.
 Tea freshness level steps are not reported, to keep notifications quiet.
 
 ## Testing against your account
@@ -188,8 +196,8 @@ so state must be polled.
 
 ## Unknowns
 
-- The full list of `modeStateLabel` values. Only `brewedfresh` ("Fresh") and `brewedstale` ("Stale")
-  have been observed. Neither the 2.0.3 nor the 2.0.6 app reads this field, so the list must come from
+- The full list of `modeStateLabel` values. Observed for tea: `off` (0), `waterboiling` (1),
+  `brewing` (3), `brewedfresh` (4), `brewedstale` (5); the app treats 2 as "water boiled". Neither the 2.0.3 nor the 2.0.6 app reads this field, so the list must come from
   live observation. Unknown values are shown split into words (e.g. `waterboiled` → "Water boiled"),
   with the raw code kept in the `raw` attribute.
 - What the Robotea `state` integer means. The only numeric check in the app is `modeState == 2` while

@@ -26,8 +26,20 @@ MODE_NAMES = {
 
 # Robotea modeStateLabel values seen live (with the app's Turkish status text).
 MODE_STATE_NAMES = {
-    "brewedfresh": "Fresh",  # "Çayınız Taze" - tea is fresh, freshness countdown running
-    "brewedstale": "Stale",  # "Çay Bayatladı" - freshness window has ended
+    "off": "Off",  # modeState 0, "Kapalı"
+    "waterboiling": "Water boiling",  # 1, "Su Kaynıyor"
+    "brewing": "Brewing",  # 3, "Çay Demleniyor"
+    "brewedfresh": "Fresh",  # 4, "Çayınız Taze" - tea is fresh, freshness countdown running
+    "brewedstale": "Stale",  # 5, "Çay Bayatladı" - freshness window has ended
+}
+
+# Notification wording per stepView.id ("<mode>_<state>"), as observed on a Robotea Pro 4in1.
+STEP_MESSAGES = {
+    "teabrewing_waterboiling": "water is boiling for tea",
+    "teabrewing_brewing": "tea brewing started",
+    "teabrewing_brewedfresh": "tea is brewed",
+    "teabrewing_brewedstale": "tea is no longer fresh",
+    "standby_off": "off",
 }
 
 # Vocabulary for splitting unknown run-together codes, longest match first.
