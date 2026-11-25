@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -66,8 +66,8 @@ ROBOTEA_SENSORS = (
         attrs_fn=lambda d: {"step_id": _step(d).get("id")},
     ),
     KaracaSensorDescription(
-        # Shown as "34:48" (minutes:seconds). HA can't render a numeric duration that
-        # way, so the state is text and the exact seconds stay in `remaining_seconds`.
+        # Shown as "34:48" (minutes:seconds), counting down to freshness.end exactly as
+        # the official app does. The exact seconds are in `remaining_seconds`.
         key="countdown",
         translation_key="countdown",
         value_fn=lambda d: _clock(_remaining(d)),
@@ -101,7 +101,7 @@ ROBOTEA_SENSORS = (
         key="fresh_until",
         translation_key="fresh_until",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda d: _tr_time(_countdown(d).get("endTime") or _fresh(d).get("end")),
+        value_fn=lambda d: _end(d),
     ),
 )
 
@@ -137,14 +137,12 @@ def _fresh(d: KaracaDevice) -> dict[str, Any]:
     return d.state.get("freshness") or {}
 
 
-# Karaca sends wall-clock times in Turkish time without an offset. Turkey has been
-# fixed at UTC+3 with no DST since 2016, so a fixed offset is exact and needs no tz
-# database lookup inside the event loop.
-TURKEY = timezone(timedelta(hours=3), "TRT")
+def _local_time(value: Any) -> datetime | None:
+    """Karaca's offset-less time, read in Home Assistant's own time zone.
 
-
-def _tr_time(value: Any) -> datetime | None:
-    """'2026-11-25T13:02:21.836385' (Turkey time) -> aware datetime, whole seconds."""
+    This matches the official app, which parses these strings with the phone's
+    default time zone (SimpleDateFormat without setTimeZone).
+    """
     if not value:
         return None
     try:
@@ -152,27 +150,27 @@ def _tr_time(value: Any) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=TURKEY)
+        parsed = parsed.replace(tzinfo=dt_util.get_default_time_zone())
     return parsed.replace(microsecond=0)
 
 
 def _iso(value: Any) -> str | None:
-    """Attribute form: ISO 8601 with the +03:00 offset, e.g. '2026-11-25T13:02:21+03:00'."""
-    parsed = _tr_time(value)
+    """Attribute form: ISO 8601 with the local offset, e.g. '2026-11-25T13:02:21+01:00'."""
+    parsed = _local_time(value)
     return parsed.isoformat() if parsed else value
 
 
-def _remaining(d: KaracaDevice) -> int:
-    """Seconds left; 0 when nothing is counting down.
+def _end(d: KaracaDevice) -> datetime | None:
+    """End of the freshness window. The app counts down to freshness.end."""
+    return _local_time(_fresh(d).get("end") or _countdown(d).get("endTime"))
 
-    Uses the server's remainingSeconds (computed in Turkish time on their side). If
-    that is missing but an end time is present, derive it from the Turkey-time end.
-    """
-    cd = _countdown(d)
-    seconds = _int(cd.get("remainingSeconds"))
-    if seconds is None and (end := _tr_time(cd.get("endTime"))):
-        seconds = int((end - dt_util.utcnow()).total_seconds())
-    return max(seconds or 0, 0)
+
+def _remaining(d: KaracaDevice) -> int:
+    """Seconds until the freshness end, computed the way the app does; 0 when none."""
+    end = _end(d)
+    if end is None:
+        return 0
+    return max(int((end - dt_util.utcnow()).total_seconds()), 0)
 
 
 def _clock(seconds: int) -> str:
