@@ -99,6 +99,21 @@
       "continue": {
         "name": "Continue"
       }
+    },
+    "event": {
+      "activity": {
+        "name": "Activity",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connection": "Connection changed",
+              "power": "Power changed",
+              "mode": "Mode changed",
+              "status": "Status changed"
+            }
+          }
+        }
+      }
     }
   },
   "services": {

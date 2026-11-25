@@ -21,7 +21,7 @@ from .const import (
 )
 from .coordinator import KaracaConfigEntry, KaracaCoordinator
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.EVENT, Platform.SENSOR, Platform.SWITCH]
 
 START_COOKING_SCHEMA = vol.Schema(
     {

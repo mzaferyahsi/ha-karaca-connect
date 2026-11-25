@@ -34,6 +34,7 @@ Polling interval: 30 s.
 | Device | Entity | Source field |
 |---|---|---|
 | All | `binary_sensor` Connected | `meta.connected` |
+| All | `event` Activity | fires on connection / power / mode / status changes (see Notifications) |
 | Robotea | `sensor` Mode, Mode state, Status, Countdown, Tea freshness | `detail.modeName`, `modeStateLabel`, `stepView.label`, time until `freshness.end` (computed like the official app), shown as `m:ss` (`0:00` when no countdown; exact seconds in the `remaining_seconds` attribute), `freshness.level` |
 | Robotea | `sensor` Fresh until (timestamp) | `freshness.end` (else `stepView.countdown.endTime`), read in Home Assistant's time zone like the official app |
 | Robotea | `sensor` State (disabled by default) | `detail.state` (raw integer) |
@@ -55,6 +56,31 @@ data:
   temperature: 180
   time: "15:00"      # likely mm:ss; copy the format shown in available_modes[].time
 ```
+
+## Notifications
+
+Every Karaca device has an **Activity** event entity. Whenever a device's connection, power,
+mode or status changes, it fires one event (typed `connection`, `power`, `mode` or `status`, the
+most important change first) with a ready-made `message`, for example
+`Remziye: Fresh (Çayınız Taze)`. The same data is fired on the event bus as
+`karaca_connect_event`, so one automation covers every Karaca device:
+
+```yaml
+alias: Karaca notifications
+triggers:
+  - trigger: event
+    event_type: karaca_connect_event
+actions:
+  - action: notify.all_devices   # or notify.mobile_app_<your_phone>
+    data:
+      title: Karaca
+      message: "{{ trigger.event.data.message }}"
+mode: queued
+```
+
+Event data: `type`, `message`, `device_name`, `device_id`, `kind`, `changes`, `previous`,
+`current`, `status_text`. The state Home Assistant starts up in is a baseline and is not reported.
+Tea freshness level steps are not reported, to keep notifications quiet.
 
 ## Testing against your account
 
