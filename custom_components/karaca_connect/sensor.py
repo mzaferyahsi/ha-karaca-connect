@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -15,6 +16,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .coordinator import KaracaConfigEntry, KaracaDevice
 from .entity import KaracaEntity
@@ -43,7 +45,7 @@ ROBOTEA_SENSORS = (
             "raw": d.state.get("modeName"),
             "mode_id": d.state.get("mode"),
             "mode_state": d.state.get("modeState"),
-            "updated": d.state.get("updatedDate"),
+            "updated": _iso(d.state.get("updatedDate")),
         },
     ),
     KaracaSensorDescription(
@@ -72,8 +74,8 @@ ROBOTEA_SENSORS = (
         attrs_fn=lambda d: {
             "remaining_seconds": _remaining(d),
             "label": _countdown(d).get("displayText"),
-            "start": _countdown(d).get("startTime"),
-            "end": _countdown(d).get("endTime"),
+            "start": _iso(_countdown(d).get("startTime")),
+            "end": _iso(_countdown(d).get("endTime")),
         },
     ),
     KaracaSensorDescription(
@@ -88,8 +90,18 @@ ROBOTEA_SENSORS = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: (d.state.get("freshness") or {}).get("level"),
         attrs_fn=lambda d: {
-            k: (d.state.get("freshness") or {}).get(k) for k in ("info", "start", "end", "show")
+            "info": _fresh(d).get("info"),
+            "show": _fresh(d).get("show"),
+            "start": _iso(_fresh(d).get("start")),
+            "end": _iso(_fresh(d).get("end")),
         },
+    ),
+    KaracaSensorDescription(
+        # When the current freshness window ends, shown by HA in your own time zone.
+        key="fresh_until",
+        translation_key="fresh_until",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda d: _tr_time(_countdown(d).get("endTime") or _fresh(d).get("end")),
     ),
 )
 
@@ -121,9 +133,46 @@ def _countdown(d: KaracaDevice) -> dict[str, Any]:
     return _step(d).get("countdown") or {}
 
 
+def _fresh(d: KaracaDevice) -> dict[str, Any]:
+    return d.state.get("freshness") or {}
+
+
+# Karaca sends wall-clock times in Turkish time without an offset. Turkey has been
+# fixed at UTC+3 with no DST since 2016, so a fixed offset is exact and needs no tz
+# database lookup inside the event loop.
+TURKEY = timezone(timedelta(hours=3), "TRT")
+
+
+def _tr_time(value: Any) -> datetime | None:
+    """'2026-11-25T13:02:21.836385' (Turkey time) -> aware datetime, whole seconds."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=TURKEY)
+    return parsed.replace(microsecond=0)
+
+
+def _iso(value: Any) -> str | None:
+    """Attribute form: ISO 8601 with the +03:00 offset, e.g. '2026-11-25T13:02:21+03:00'."""
+    parsed = _tr_time(value)
+    return parsed.isoformat() if parsed else value
+
+
 def _remaining(d: KaracaDevice) -> int:
-    """Seconds left; 0 when the server sends no countdown (nothing is counting down)."""
-    return max(_int(_countdown(d).get("remainingSeconds")) or 0, 0)
+    """Seconds left; 0 when nothing is counting down.
+
+    Uses the server's remainingSeconds (computed in Turkish time on their side). If
+    that is missing but an end time is present, derive it from the Turkey-time end.
+    """
+    cd = _countdown(d)
+    seconds = _int(cd.get("remainingSeconds"))
+    if seconds is None and (end := _tr_time(cd.get("endTime"))):
+        seconds = int((end - dt_util.utcnow()).total_seconds())
+    return max(seconds or 0, 0)
 
 
 def _clock(seconds: int) -> str:

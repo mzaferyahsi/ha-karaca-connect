@@ -175,3 +175,35 @@ async def test_stale_tea_has_zero_countdown(hass: HomeAssistant, mock_api) -> No
     assert state.state == "Stale"
     assert state.attributes["raw"] == "brewedstale"
     assert hass.states.get("sensor.kitchen_robotea_status").state == "Çay Bayatladı"
+
+
+async def test_turkey_time(hass: HomeAssistant, mock_api) -> None:
+    """Karaca sends naive Turkish (UTC+3) times; they must not be read as local time."""
+    add_cloud(mock_api)
+    await _setup(hass)
+
+    # Fixture end is 2026-11-24T00:40:56 Turkey time -> 2026-11-23T21:40:56 UTC.
+    assert hass.states.get("sensor.kitchen_robotea_fresh_until").state == "2026-11-23T21:40:56+00:00"
+    attrs = hass.states.get("sensor.kitchen_robotea_countdown").attributes
+    assert attrs["start"] == "2026-11-23T23:40:56+03:00"
+    assert attrs["end"] == "2026-11-24T00:40:56+03:00"
+    assert hass.states.get("sensor.kitchen_robotea_tea_freshness").attributes["end"] == (
+        "2026-11-24T00:40:56+03:00"
+    )
+
+
+async def test_countdown_from_turkey_end_time(hass: HomeAssistant, mock_api, freezer) -> None:
+    """Without remainingSeconds, the countdown is derived from the Turkey-time end."""
+    import copy
+
+    from .conftest import ROBOTEA
+
+    data = copy.deepcopy(ROBOTEA)
+    del data["data"]["detail"]["stepView"]["countdown"]["remainingSeconds"]
+    freezer.move_to("2026-11-23T21:30:56+00:00")  # 10 minutes before the 21:40:56 UTC end
+    add_cloud(mock_api, robotea=data)
+    await _setup(hass)
+
+    state = hass.states.get("sensor.kitchen_robotea_countdown")
+    assert state.state == "10:00"
+    assert state.attributes["remaining_seconds"] == 600

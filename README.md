@@ -35,6 +35,7 @@ Polling interval: 30 s.
 |---|---|---|
 | All | `binary_sensor` Connected | `meta.connected` |
 | Robotea | `sensor` Mode, Mode state, Status, Countdown, Tea freshness | `detail.modeName`, `modeStateLabel`, `stepView.label`, `stepView.countdown.remainingSeconds`, shown as `m:ss` (`0:00` when no countdown; exact seconds in the `remaining_seconds` attribute), `freshness.level` |
+| Robotea | `sensor` Fresh until (timestamp) | `stepView.countdown.endTime`, else `freshness.end`, read as Turkey time (UTC+3) |
 | Robotea | `sensor` State (disabled by default) | `detail.state` (raw integer) |
 | Robotea | `sensor` Kettle temperature / target (only if reported) | `kettleTemperatureRead` / `kettleTemperatureSet` |
 | Robotea | `switch` Power | `detail.modes.standBy.active`. This is the app's main power button: on means the machine is on; turning it off powers the Robotea down. |
@@ -134,7 +135,12 @@ HTTP 503 means maintenance.
 ```
 
 Several fields here (`modeStateLabel`, `stepView`, kettle temperatures, `herbalTea`, `kettleMode`)
-are newer than the app 2.0.3 models. Timestamps carry no timezone.
+are newer than the app 2.0.3 models.
+
+**Time zone:** timestamps carry no offset and are Turkish local time (UTC+3, no DST since 2016).
+`remainingSeconds` is computed by the server and is correct. The official app reads these times as
+the phone's local time, so outside Turkey its freshness countdown is wrong by the time-zone difference
+(e.g. +2 hours in the Netherlands in winter). The integration attaches `+03:00` to every timestamp.
 
 ### AeroFritas (air fryer)
 | Method | Path | Notes |
