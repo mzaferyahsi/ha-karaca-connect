@@ -64,14 +64,13 @@ ROBOTEA_SENSORS = (
         attrs_fn=lambda d: {"step_id": _step(d).get("id")},
     ),
     KaracaSensorDescription(
+        # Shown as "34:48" (minutes:seconds). HA can't render a numeric duration that
+        # way, so the state is text and the exact seconds stay in `remaining_seconds`.
         key="countdown",
         translation_key="countdown",
-        device_class=SensorDeviceClass.DURATION,
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        suggested_display_precision=0,
-        # No countdown object means nothing is counting down: report 0, not unknown.
-        value_fn=lambda d: max(_int(_countdown(d).get("remainingSeconds")) or 0, 0),
+        value_fn=lambda d: _clock(_remaining(d)),
         attrs_fn=lambda d: {
+            "remaining_seconds": _remaining(d),
             "label": _countdown(d).get("displayText"),
             "start": _countdown(d).get("startTime"),
             "end": _countdown(d).get("endTime"),
@@ -120,6 +119,20 @@ def _step(d: KaracaDevice) -> dict[str, Any]:
 
 def _countdown(d: KaracaDevice) -> dict[str, Any]:
     return _step(d).get("countdown") or {}
+
+
+def _remaining(d: KaracaDevice) -> int:
+    """Seconds left; 0 when the server sends no countdown (nothing is counting down)."""
+    return max(_int(_countdown(d).get("remainingSeconds")) or 0, 0)
+
+
+def _clock(seconds: int) -> str:
+    """2088 -> "34:48"; 4000 -> "1:06:40"; 0 -> "0:00"."""
+    hours, rest = divmod(seconds, 3600)
+    minutes, secs = divmod(rest, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes}:{secs:02d}"
 
 AIRFRYER_SENSORS = (
     KaracaSensorDescription(

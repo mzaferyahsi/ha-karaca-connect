@@ -43,3 +43,12 @@ def test_mode_state_name(raw, expected):
 )
 def test_humanize(raw, expected):
     assert humanize(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("seconds", "expected"), [(0, "0:00"), (59, "0:59"), (2088, "34:48"), (3600, "1:00:00"), (4000, "1:06:40")]
+)
+def test_clock(seconds, expected):
+    from custom_components.karaca_connect.sensor import _clock
+
+    assert _clock(seconds) == expected

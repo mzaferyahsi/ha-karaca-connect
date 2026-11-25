@@ -62,7 +62,8 @@ async def test_entities(hass: HomeAssistant, mock_api) -> None:
     assert hass.states.get("sensor.kitchen_robotea_mode").state == "Tea brewing"
     assert hass.states.get("sensor.kitchen_robotea_mode_state").state == "Fresh"
     assert hass.states.get("sensor.kitchen_robotea_status").state == "Çayınız Taze"
-    assert hass.states.get("sensor.kitchen_robotea_countdown").state == "2088"
+    assert hass.states.get("sensor.kitchen_robotea_countdown").state == "34:48"
+    assert hass.states.get("sensor.kitchen_robotea_countdown").attributes["remaining_seconds"] == 2088
     assert hass.states.get("sensor.kitchen_robotea_tea_freshness").state == "3"
     assert hass.states.get("switch.kitchen_robotea_power").state == "on"
     assert hass.states.get("switch.kitchen_robotea_tea_brewing").state == "on"
@@ -169,7 +170,7 @@ async def test_stale_tea_has_zero_countdown(hass: HomeAssistant, mock_api) -> No
     add_cloud(mock_api, robotea=stale)
     await _setup(hass)
 
-    assert hass.states.get("sensor.kitchen_robotea_countdown").state == "0"
+    assert hass.states.get("sensor.kitchen_robotea_countdown").state == "0:00"
     state = hass.states.get("sensor.kitchen_robotea_mode_state")
     assert state.state == "Stale"
     assert state.attributes["raw"] == "brewedstale"

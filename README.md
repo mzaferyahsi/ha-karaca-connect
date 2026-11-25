@@ -34,7 +34,7 @@ Polling interval: 30 s.
 | Device | Entity | Source field |
 |---|---|---|
 | All | `binary_sensor` Connected | `meta.connected` |
-| Robotea | `sensor` Mode, Mode state, Status, Countdown, Tea freshness | `detail.modeName`, `modeStateLabel`, `stepView.label`, `stepView.countdown.remainingSeconds` (0 when no countdown), `freshness.level` |
+| Robotea | `sensor` Mode, Mode state, Status, Countdown, Tea freshness | `detail.modeName`, `modeStateLabel`, `stepView.label`, `stepView.countdown.remainingSeconds`, shown as `m:ss` (`0:00` when no countdown; exact seconds in the `remaining_seconds` attribute), `freshness.level` |
 | Robotea | `sensor` State (disabled by default) | `detail.state` (raw integer) |
 | Robotea | `sensor` Kettle temperature / target (only if reported) | `kettleTemperatureRead` / `kettleTemperatureSet` |
 | Robotea | `switch` Power | `detail.modes.standBy.active`. This is the app's main power button: on means the machine is on; turning it off powers the Robotea down. |
